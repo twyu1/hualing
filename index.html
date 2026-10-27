@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#10070d" />
+    <meta
+      name="description"
+      content="花灵 · 用摄像头手势唤醒一苞粉色粒子花。张开手掌让花舒展并 3D 环绕；双手入镜可分工操控，盛开后握拳，花朵会重新合拢。"
+    />
+    <title>花灵 · Petal Bloom</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main id="app">
+      <div class="atmosphere" aria-hidden="true">
+        <div class="atmosphere__rose"></div>
+        <div class="atmosphere__wine"></div>
+        <div class="atmosphere__halo" id="bloom-halo"></div>
+      </div>
+
+      <canvas id="dust" aria-hidden="true"></canvas>
+      <canvas id="flower" aria-hidden="true"></canvas>
+      <canvas id="aura" aria-hidden="true"></canvas>
+      <div class="grain" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <div class="hud">
+        <header class="topbar">
+          <a class="brand" href="#" aria-label="花灵首页" data-noop>
+            <span class="brand__seal" aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <path d="M20 4c3.6 6.1 7.3 9.2 12 10.8-4.4 5.1-6.4 9.8-6.6 15.2-3.2-2.9-5.7-4.5-9-5.4 0 3.8.8 7.4 2.7 11.4" stroke="currentColor" stroke-width="1" />
+                <path d="M20 4c-3.6 6.1-7.3 9.2-12 10.8 4.4 5.1 6.4 9.8 6.6 15.2 2.2-2 4.2-3.4 6.4-4.4" stroke="currentColor" stroke-width="1" opacity=".55" />
+                <circle cx="20" cy="20" r="1.7" fill="currentColor" />
+              </svg>
+            </span>
+            <span class="brand__copy">
+              <span class="brand__en">PETAL BLOOM</span>
+              <span class="brand__cn">花灵</span>
+            </span>
+          </a>
+
+          <div class="topbar__right">
+            <div class="gesture-chip" id="gesture-chip" aria-live="polite">
+              <span class="gesture-chip__orb" aria-hidden="true"></span>
+              <span class="gesture-chip__text">
+                <span class="gesture-chip__label" id="gesture-label">寻找手掌</span>
+                <span class="gesture-chip__en" id="gesture-en">SEARCHING</span>
+              </span>
+              <span class="finger-pips" id="finger-pips" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </div>
+            <div class="secondary-chip" id="secondary-chip" aria-live="polite">
+              <span class="secondary-chip__orbit" aria-hidden="true"></span>
+              <span id="secondary-label">副手 · 待机</span>
+            </div>
+            <button
+              class="icon-button"
+              id="motion-btn"
+              type="button"
+              title="3D 环绕灵敏度"
+              aria-label="调整 3D 环绕灵敏度"
+              aria-expanded="false"
+              aria-controls="motion-panel"
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <ellipse cx="12" cy="12" rx="8" ry="4.2" stroke="currentColor" stroke-width="1.05" />
+                <ellipse cx="12" cy="12" rx="4.2" ry="8" stroke="currentColor" stroke-width="1.05" opacity=".7" />
+                <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+                <path d="M4.4 12h15.2" stroke="currentColor" stroke-width=".9" opacity=".45" />
+              </svg>
+            </button>
+            <button class="icon-button" id="reset-btn" type="button" title="重新含苞（R）" aria-label="重新含苞">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5.8 8.3A7.4 7.4 0 1 1 4.9 14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                <path d="M4.7 4.7v4.1h4.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M12 8.2v4.2l2.6 1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="motion-panel" id="motion-panel" aria-hidden="true">
+          <div class="motion-panel__head">
+            <span>
+              <span class="motion-panel__kicker">SPATIAL ORBIT</span>
+              <span class="motion-panel__title">3D 环绕</span>
+            </span>
+            <button class="motion-panel__close" id="motion-close" type="button" aria-label="收起设置">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <p class="motion-panel__hint">
+            手掌平移即转动视角，可连续环绕 360°；手停后轻微滑行。
+            任意张开的手都能环绕，最近移动的手优先；上移视角更低，下移俯视花心。
+          </p>
+          <label class="motion-control">
+            <span class="motion-control__row">
+              <span>环绕灵敏度</span>
+              <span class="motion-control__value" id="motion-value">100%</span>
+            </span>
+            <input id="motion-range" type="range" min="40" max="160" step="1" value="100" aria-label="环绕灵敏度" />
+          </label>
+          <div class="motion-panel__foot">
+            <span>100% ≈ 全幅划动 360°</span>
+            <button id="motion-default" type="button">恢复默认</button>
+          </div>
+        </div>
+
+        <div class="rail" aria-hidden="true">
+          <span>GESTURE&nbsp;&nbsp;/&nbsp;&nbsp;BLOOM</span>
+          <i></i>
+          <span>NO. 01</span>
+        </div>
+
+        <aside class="camera-panel" id="camera-panel" data-mode="camera">
+          <div class="camera-panel__frame">
+            <video id="camera" autoplay playsinline muted></video>
+            <canvas id="hand-preview" aria-hidden="true"></canvas>
+            <div class="camera-panel__demo" aria-hidden="true">
+              <span class="demo-orbit demo-orbit--one"></span>
+              <span class="demo-orbit demo-orbit--two"></span>
+              <svg viewBox="0 0 48 48" fill="none">
+                <path d="M17 29V12.5a2 2 0 0 1 4 0V22m0-11.8a2 2 0 0 1 4 0V22m0-9.8a2 2 0 0 1 4 0V23m0-7.8a2 2 0 0 1 4 0v11.3c0 7-4.1 12.2-10.4 12.2-4.8 0-7.5-2-10.2-6.2l-4.1-6.5a2.2 2.2 0 0 1 3.7-2.4l2.8 3.5" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="demo-mark">DEMO</span>
+            </div>
+            <div class="camera-panel__scan" aria-hidden="true"></div>
+            <div class="camera-panel__meta">
+              <span class="live-dot" id="live-dot"></span>
+              <span id="live-label">CAMERA · LIVE</span>
+            </div>
+            <div class="camera-panel__state" id="cam-state">正在寻找手掌</div>
+            <span class="corner corner--tl" aria-hidden="true"></span>
+            <span class="corner corner--tr" aria-hidden="true"></span>
+            <span class="corner corner--bl" aria-hidden="true"></span>
+            <span class="corner corner--br" aria-hidden="true"></span>
+          </div>
+          <div class="camera-panel__caption">
+            <span>MIRROR VIEW</span>
+            <span>LOCAL ONLY</span>
+          </div>
+        </aside>
+
+        <footer class="footer">
+          <div class="status" aria-live="polite">
+            <div class="status__line">
+              <span class="status__eyebrow" id="status-eyebrow">BLOSSOM · 000</span>
+              <span class="status__percent" id="status-percent">0%</span>
+            </div>
+            <p class="status__text" id="status-text">指尖轻展，花苞便会苏醒</p>
+            <div class="progress" aria-hidden="true">
+              <span class="progress__fill" id="progress-fill"></span>
+              <i class="progress__spark" id="progress-spark"></i>
+            </div>
+          </div>
+          <p class="hint">
+            <span class="hint__key">✋</span> 张手舒展 · 移动环绕
+            <span class="hint__divider"></span>
+            <span class="hint__key">✊</span> 握拳停留 · 盛放后含苞
+          </p>
+        </footer>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+
+      <section class="intro" id="intro" aria-labelledby="intro-title">
+        <div class="intro__wash" aria-hidden="true"></div>
+        <div class="intro__content">
+          <p class="intro__kicker">
+            <span></span>
+            AN INTERACTIVE BLOOM
+          </p>
+          <h1 class="intro__title" id="intro-title">
+            让指尖<br />
+            <em>唤醒</em>花开
+          </h1>
+          <p class="intro__lede">
+            一苞粉色的光，正等待你张开手掌。<br />
+            允许摄像头，让手势成为春风。<br />
+            移动手掌环视花灵，双手入镜还能分工操控。
+          </p>
+
+          <div class="intro__actions">
+            <button class="start-button" id="start-btn" type="button">
+              <span class="start-button__glow" aria-hidden="true"></span>
+              <span class="start-button__label">开启花灵</span>
+              <span class="start-button__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.7h6.4L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-8Z" stroke="currentColor" stroke-width="1.1" />
+                  <circle cx="12" cy="12.5" r="3.4" stroke="currentColor" stroke-width="1.1" />
+                </svg>
+              </span>
+            </button>
+            <button class="demo-button" id="demo-btn" type="button">无摄像头 · 演示模式</button>
+          </div>
+
+          <p class="intro__status" id="intro-status" role="status">
+            影像仅在本机处理，不会被上传
+          </p>
+        </div>
+
+        <div class="intro__side" aria-hidden="true">
+          <span class="intro__side-line"></span>
+          <span class="intro__side-vertical">A FLOWER THAT LISTENS</span>
+          <span class="intro__side-index">01 — 03</span>
+        </div>
+
+        <div class="intro__badge" aria-hidden="true">
+          <span class="intro__badge-dot"></span>
+          WEBCAM GESTURE
+        </div>
+      </section>
+    </main>
+
+    <noscript>请启用 JavaScript，以进入这朵由粒子组成的花。</noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
